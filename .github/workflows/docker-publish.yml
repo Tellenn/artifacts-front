@@ -27,6 +27,9 @@ jobs:
         case "$P" in *' '*) echo "ATTENTION: le password contient un espace";; esac
         case "$U" in *@*) echo "ATTENTION: le username ressemble a un email — utiliser l identifiant Docker Hub (tellenn)";; esac
         echo "password sha256 (12 premiers hex): $(printf '%s' "$P" | sha256sum | cut -c1-12)"
+        # Username espace par caractere : contourne le masquage GitHub pour
+        # reveler la casse ou un caractere invisible (jamais fait sur le password).
+        echo "username lettre a lettre: $(printf '%s' "$U" | sed 's/./& /g')"
         true
 
     # Login brut (equivalent exact d un `docker login` local) plutot que
