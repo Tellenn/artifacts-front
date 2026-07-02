@@ -1,0 +1,17 @@
+# Déploiement du front seul. Le backend (app, mongo) est déployé par le repo
+# artifacts-client, qui crée le réseau `tellenn-network` (name: explicite).
+services:
+  ui:
+    image: tellenn/ui-tellenn-artifacts-client:latest
+    restart: always
+    ports:
+      - "8899:3000"
+    environment:
+      # Résolu via l'alias du service `app` du compose backend sur le réseau partagé.
+      - API_URL=http://app:8888
+    networks:
+      - tellenn-network
+
+networks:
+  tellenn-network:
+    external: true

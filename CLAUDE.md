@@ -26,16 +26,23 @@ qui consomme l'API Spring Boot du projet `artifacts-client`.
 ```
 src/
 ├── app/                          → Pages (App Router)
-│   ├── layout.tsx                → Layout racine (HTML, fonts, metadata)
+│   ├── layout.tsx                → Layout racine (fonts, NavBar, AutoRefresh)
 │   ├── page.tsx                  → Dashboard — grille des 5 personnages
+│   ├── bank/page.tsx             → Banque — or/slots + recherche/filtres
+│   ├── tasks/page.tsx            → Tâches — pool de récolte + tâches de jeu
 │   └── characters/[name]/
 │       └── page.tsx              → Page détail d'un personnage
 ├── components/                   → Composants UI réutilisables
-│   └── CharacterCard.tsx         → Carte résumé d'un personnage
+│   ├── CharacterCard.tsx         → Carte résumé d'un personnage
+│   ├── BankBrowser.tsx           → Recherche + filtres banque (client)
+│   ├── NavBar.tsx                → Nav desktop (haut) + tab bar mobile (bas)
+│   └── AutoRefresh.tsx           → router.refresh() toutes les 10 s (client)
 ├── lib/
 │   └── api.ts                    → Fonctions fetch vers le backend (localhost:8888)
 └── types/
-    └── character.ts              → Types TypeScript + métadonnées des personnages
+    ├── character.ts              → Types personnages + métadonnées des 5 persos
+    ├── bank.ts                   → BankItem (camelCase), BankDetails (snake_case)
+    └── gathering.ts              → GatheringTaskStatus, ReservationStatus
 ```
 
 ---
@@ -108,6 +115,8 @@ export default async function MyPage() {
 |-------|---------|-------------|
 | `/` | `app/page.tsx` | Dashboard — tous les personnages |
 | `/characters/[name]` | `app/characters/[name]/page.tsx` | Détail d'un personnage |
+| `/bank` | `app/bank/page.tsx` | Banque — or, slots, recherche, filtres par type |
+| `/tasks` | `app/tasks/page.tsx` | Pool de récolte + tâches de jeu par personnage |
 
 ### Params de route dynamique (Next.js 15+)
 
@@ -157,6 +166,11 @@ export async function fetchCharacters(): Promise<ArtifactsCharacter[]> {
 ## Types (`src/types/character.ts`)
 
 - Miroir des modèles Kotlin du backend `artifacts-client`.
+- ⚠️ **Casse JSON** : elle dépend des annotations Kotlin, pas d'une stratégie globale.
+  `ArtifactsCharacter` et `BankDetails` sont annotés `@JsonProperty` → **snake_case**
+  (`max_hp`, `next_expansion_cost`). `GatheringTaskStatus` et `BankItem` ne le sont
+  pas → **camelCase** (`materialCode`). Toujours vérifier les annotations du modèle
+  Kotlin (ou le JSON réel) avant d'écrire un type.
 - `ArtifactsCharacter` — shape complète retournée par `GET /characters`.
 - `CHARACTER_META` — map `name → { role, skin }` pour les 5 personnages connus.
 - `ROLE_LABELS` / `ROLE_COLORS` — affichage Tailwind par rôle.

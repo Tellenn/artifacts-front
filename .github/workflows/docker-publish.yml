@@ -1,0 +1,43 @@
+name: Docker Publish and Deploy
+
+on:
+  push:
+    branches: [ "master", "main" ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v4
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push
+      uses: docker/build-push-action@v7
+      with:
+        context: .
+        push: true
+        tags: tellenn/ui-tellenn-artifacts-client:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: self-hosted
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Pull latest image
+      run: docker pull tellenn/ui-tellenn-artifacts-client:latest
+
+    # L'ancien conteneur ui (géré historiquement par le compose du backend)
+    # occupe encore le port 8899 lors du premier déploiement : on le retire.
+    - name: Free port 8899
+      run: docker ps -q --filter "publish=8899" | xargs -r docker rm -f
+
+    - name: Run docker-compose
+      run: docker-compose up -d

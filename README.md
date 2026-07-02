@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Artifacts Front
 
-## Getting Started
+Dashboard web (Next.js 16 + Tailwind v4) pour le bot [Artifacts MMO](https://artifactsmmo.com)
+du repo `artifacts-client`. Pensé pour un usage desktop **et mobile** (tab bar en bas d'écran).
 
-First, run the development server:
+## Pages
+
+| Route | Contenu |
+|-------|---------|
+| `/` | Statut des 5 personnages (HP, XP, or, tâche, objectif, cooldown) |
+| `/characters/[name]` | Détail d'un personnage (stats, compétences, équipement, inventaire) |
+| `/bank` | Contenu de la banque : or, slots, recherche et filtres par type |
+| `/tasks` | Pool de récolte (restant / réservé par personnage) + tâches de jeu |
+
+Les données sont fetchées côté serveur sur le backend Spring Boot (`:8888`)
+et rafraîchies toutes les 10 s.
+
+## Développement
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev     # http://localhost:3000 — backend attendu sur localhost:8888
+npm run build   # vérifie TypeScript
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+L'URL du backend se règle via `API_URL` (runtime, prioritaire) ou
+`NEXT_PUBLIC_API_URL` (`.env.local`, figée au build).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Déploiement
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Le workflow `.github/workflows/docker-publish.yml` (push sur `master`/`main`) :
 
-## Learn More
+1. build & push de l'image `tellenn/ui-tellenn-artifacts-client:latest` sur Docker Hub ;
+2. déploiement sur le runner self-hosted via `docker-compose up -d`
+   (service `ui`, port `8899`, réseau externe `tellenn-network` créé par le
+   compose du backend).
 
-To learn more about Next.js, take a look at the following resources:
+### Mise en place (une fois)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Créer le repo GitHub et pousser `master`.
+2. Ajouter les secrets d'Actions `DOCKER_USERNAME` et `DOCKER_PASSWORD`.
+3. Redéployer une fois le backend (son compose nomme désormais le réseau
+   `tellenn-network`) — ou créer le réseau à la main :
+   `docker network create tellenn-network`.

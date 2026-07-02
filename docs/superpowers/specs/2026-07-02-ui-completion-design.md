@@ -54,6 +54,11 @@ Décisions prises (options recommandées, utilisateur AFK lors du questionnaire)
 - `types/bank.ts` : `BankItem` (camelCase, miroir de `BankItemDocument`), `BankDetails`
   (snake_case, miroir du modèle Kotlin annoté `@JsonProperty`).
 - `types/gathering.ts` : `GatheringTaskStatus`, `ReservationStatus` (camelCase).
+- **Découverte en vérification** : `ArtifactsCharacter` sérialise en **snake_case**
+  (annotations `@param:JsonProperty` champ par champ) alors que le type front
+  existant était en camelCase — le dashboard affichait `undefined` pour `max_hp`,
+  `task_progress`, les niveaux de compétence, etc. Correction incluse :
+  `types/character.ts` réécrit en miroir du JSON réel + usages mis à jour.
 
 ### Mobile
 
