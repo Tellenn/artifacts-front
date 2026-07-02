@@ -20,14 +20,8 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
-      <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">
-          ⚔️ Artifacts MMO — Dashboard
-        </h1>
-        <span className="text-xs text-gray-500">Actualisé toutes les 10s</span>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+        <h1 className="text-xl font-bold tracking-tight">⚔️ Personnages</h1>
         {error ? (
           <div className="bg-red-900/40 border border-red-700 rounded-xl p-6 text-center">
             <p className="text-red-400 font-medium">Impossible de contacter le backend</p>
