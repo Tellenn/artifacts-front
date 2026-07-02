@@ -42,7 +42,7 @@ function SkillRow({ skill, level, xp, maxXp }: { skill: string; level: number; x
   );
 }
 
-function SlotRow({ slot, value }: { slot: string; value: string }) {
+function SlotRow({ slot, value }: { slot: string; value: string | null }) {
   return (
     <div className="flex justify-between py-1 border-b border-gray-800 text-sm">
       <span className="text-gray-400 capitalize">{slot}</span>
@@ -87,7 +87,7 @@ export default async function CharacterDetailPage({ params }: PageProps) {
   const roleColor = ROLE_COLORS[role];
   const roleLabel = ROLE_LABELS[role];
 
-  const hpPct = character.maxHp > 0 ? Math.round((character.hp / character.maxHp) * 100) : 0;
+  const hpPct = character.max_hp > 0 ? Math.round((character.hp / character.max_hp) * 100) : 0;
 
   const inventoryItems = character.inventory?.filter((s) => s.code !== "") ?? [];
 
@@ -121,25 +121,25 @@ export default async function CharacterDetailPage({ params }: PageProps) {
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-gray-400">HP</span>
-                <span>{character.hp} / {character.maxHp} ({hpPct}%)</span>
+                <span>{character.hp} / {character.max_hp} ({hpPct}%)</span>
               </div>
               <ProgressBar
                 value={character.hp}
-                max={character.maxHp}
+                max={character.max_hp}
                 color={hpPct > 50 ? "bg-emerald-500" : hpPct > 25 ? "bg-yellow-500" : "bg-red-500"}
               />
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-gray-400">XP</span>
-                <span>{character.xp} / {character.maxXp}</span>
+                <span>{character.xp} / {character.max_xp}</span>
               </div>
-              <ProgressBar value={character.xp} max={character.maxXp} color="bg-blue-500" />
+              <ProgressBar value={character.xp} max={character.max_xp} color="bg-blue-500" />
             </div>
             <StatRow label="Or" value={`${character.gold} 💰`} />
             <StatRow label="Position" value={`(${character.x}, ${character.y})`} />
-            {character.cooldownExpiration && (
-              <StatRow label="Cooldown expire" value={new Date(character.cooldownExpiration).toLocaleTimeString("fr-FR")} />
+            {character.cooldown_expiration && (
+              <StatRow label="Cooldown expire" value={new Date(character.cooldown_expiration).toLocaleTimeString("fr-FR")} />
             )}
           </div>
         </section>
@@ -149,7 +149,7 @@ export default async function CharacterDetailPage({ params }: PageProps) {
           <SectionTitle>Stats de combat</SectionTitle>
           <StatRow label="Vitesse" value={character.speed} />
           <StatRow label="Haste" value={character.haste} />
-          <StatRow label="Coup critique" value={`${character.criticalStrike}%`} />
+          <StatRow label="Coup critique" value={`${character.critical_strike}%`} />
           <StatRow label="Sagesse" value={character.wisdom} />
           <StatRow label="Prospection" value={character.prospecting} />
           <StatRow label="Menace" value={character.threat} />
@@ -159,43 +159,44 @@ export default async function CharacterDetailPage({ params }: PageProps) {
         {/* Éléments */}
         <section className="bg-gray-900 border border-gray-700 rounded-xl p-5">
           <SectionTitle>Éléments</SectionTitle>
-          <ElementRow label="🔥 Feu"   atk={character.attackFire}  dmg={character.dmgFire}  res={character.resFire} />
-          <ElementRow label="🌍 Terre" atk={character.attackEarth} dmg={character.dmgEarth} res={character.resEarth} />
-          <ElementRow label="💧 Eau"   atk={character.attackWater} dmg={character.dmgWater} res={character.resWater} />
-          <ElementRow label="💨 Air"   atk={character.attackAir}   dmg={character.dmgAir}   res={character.resAir} />
+          <ElementRow label="🔥 Feu"   atk={character.attack_fire}  dmg={character.dmg_fire}  res={character.res_fire} />
+          <ElementRow label="🌍 Terre" atk={character.attack_earth} dmg={character.dmg_earth} res={character.res_earth} />
+          <ElementRow label="💧 Eau"   atk={character.attack_water} dmg={character.dmg_water} res={character.res_water} />
+          <ElementRow label="💨 Air"   atk={character.attack_air}   dmg={character.dmg_air}   res={character.res_air} />
         </section>
 
         {/* Compétences */}
         <section className="bg-gray-900 border border-gray-700 rounded-xl p-5">
           <SectionTitle>Compétences</SectionTitle>
-          <SkillRow skill="Minage"          level={character.mining}         xp={character.miningXp}         maxXp={character.miningMaxXp} />
-          <SkillRow skill="Bûcheronnage"    level={character.woodcutting}    xp={character.woodcuttingXp}    maxXp={character.woodcuttingMaxXp} />
-          <SkillRow skill="Pêche"           level={character.fishing}        xp={character.fishingXp}        maxXp={character.fishingMaxXp} />
-          <SkillRow skill="Cuisine"         level={character.cooking}        xp={character.cookingXp}        maxXp={character.cookingMaxXp} />
-          <SkillRow skill="Armement"        level={character.weaponcrafting} xp={character.weaponcraftingXp} maxXp={character.weaponcraftingMaxXp} />
-          <SkillRow skill="Équipement"      level={character.gearcrafting}   xp={character.gearcraftingXp}   maxXp={character.gearcraftingMaxXp} />
-          <SkillRow skill="Bijouterie"      level={character.jewelrycrafting} xp={character.jewelrycraftingXp} maxXp={character.jewelrycraftingMaxXp} />
-          <SkillRow skill="Alchimie"        level={character.alchemy}        xp={character.alchemyXp}        maxXp={character.alchemyMaxXp} />
+          <SkillRow skill="Minage"          level={character.mining_level}         xp={character.mining_xp}         maxXp={character.mining_max_xp} />
+          <SkillRow skill="Bûcheronnage"    level={character.woodcutting_level}    xp={character.woodcutting_xp}    maxXp={character.woodcutting_max_xp} />
+          <SkillRow skill="Pêche"           level={character.fishing_level}        xp={character.fishing_xp}        maxXp={character.fishing_max_xp} />
+          <SkillRow skill="Cuisine"         level={character.cooking_level}        xp={character.cooking_xp}        maxXp={character.cooking_max_xp} />
+          <SkillRow skill="Armement"        level={character.weaponcrafting_level} xp={character.weaponcrafting_xp} maxXp={character.weaponcrafting_max_xp} />
+          <SkillRow skill="Équipement"      level={character.gearcrafting_level}   xp={character.gearcrafting_xp}   maxXp={character.gearcrafting_max_xp} />
+          <SkillRow skill="Bijouterie"      level={character.jewelrycrafting_level} xp={character.jewelrycrafting_xp} maxXp={character.jewelrycrafting_max_xp} />
+          <SkillRow skill="Alchimie"        level={character.alchemy_level}        xp={character.alchemy_xp}        maxXp={character.alchemy_max_xp} />
         </section>
 
         {/* Équipement */}
         <section className="bg-gray-900 border border-gray-700 rounded-xl p-5">
           <SectionTitle>Équipement</SectionTitle>
-          <SlotRow slot="Arme"         value={character.weaponSlot} />
-          <SlotRow slot="Bouclier"     value={character.shieldSlot} />
-          <SlotRow slot="Casque"       value={character.helmetSlot} />
-          <SlotRow slot="Armure"       value={character.bodyArmorSlot} />
-          <SlotRow slot="Jambières"    value={character.legArmorSlot} />
-          <SlotRow slot="Bottes"       value={character.bootsSlot} />
-          <SlotRow slot="Bague 1"      value={character.ring1Slot} />
-          <SlotRow slot="Bague 2"      value={character.ring2Slot} />
-          <SlotRow slot="Amulette"     value={character.amuletSlot} />
-          <SlotRow slot="Artefact 1"   value={character.artifact1Slot} />
-          <SlotRow slot="Artefact 2"   value={character.artifact2Slot} />
-          <SlotRow slot="Artefact 3"   value={character.artifact3Slot} />
-          <SlotRow slot="Utilitaire 1" value={character.utility1Slot} />
-          <SlotRow slot="Utilitaire 2" value={character.utility2Slot} />
-          <SlotRow slot="Sac"          value={character.bagSlot} />
+          <SlotRow slot="Arme"         value={character.weapon_slot} />
+          <SlotRow slot="Rune"         value={character.rune_slot} />
+          <SlotRow slot="Bouclier"     value={character.shield_slot} />
+          <SlotRow slot="Casque"       value={character.helmet_slot} />
+          <SlotRow slot="Armure"       value={character.body_armor_slot} />
+          <SlotRow slot="Jambières"    value={character.leg_armor_slot} />
+          <SlotRow slot="Bottes"       value={character.boots_slot} />
+          <SlotRow slot="Bague 1"      value={character.ring1_slot} />
+          <SlotRow slot="Bague 2"      value={character.ring2_slot} />
+          <SlotRow slot="Amulette"     value={character.amulet_slot} />
+          <SlotRow slot="Artefact 1"   value={character.artifact1_slot} />
+          <SlotRow slot="Artefact 2"   value={character.artifact2_slot} />
+          <SlotRow slot="Artefact 3"   value={character.artifact3_slot} />
+          <SlotRow slot="Utilitaire 1" value={character.utility1_slot} />
+          <SlotRow slot="Utilitaire 2" value={character.utility2_slot} />
+          <SlotRow slot="Sac"          value={character.bag_slot} />
         </section>
 
         {/* Tâche & Inventaire */}
@@ -205,16 +206,16 @@ export default async function CharacterDetailPage({ params }: PageProps) {
               <SectionTitle>Tâche en cours</SectionTitle>
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-300 capitalize">{character.taskType}: {character.task}</span>
-                  <span className="text-gray-400">{character.taskProgress}/{character.taskTotal}</span>
+                  <span className="text-gray-300 capitalize">{character.task_type}: {character.task}</span>
+                  <span className="text-gray-400">{character.task_progress}/{character.task_total}</span>
                 </div>
-                <ProgressBar value={character.taskProgress} max={character.taskTotal} color="bg-violet-500" />
+                <ProgressBar value={character.task_progress} max={character.task_total} color="bg-violet-500" />
               </div>
             </div>
           )}
 
           <div>
-            <SectionTitle>Inventaire ({inventoryItems.length}/{character.inventoryMaxItems})</SectionTitle>
+            <SectionTitle>Inventaire ({inventoryItems.length}/{character.inventory_max_items})</SectionTitle>
             {inventoryItems.length === 0 ? (
               <p className="text-gray-600 text-sm italic">Inventaire vide</p>
             ) : (

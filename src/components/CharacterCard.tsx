@@ -33,12 +33,11 @@ export function CharacterCard({ character, objective }: CharacterCardProps) {
   const roleColor = ROLE_COLORS[role];
   const roleLabel = ROLE_LABELS[role];
 
-  const hpPct = character.maxHp > 0 ? Math.round((character.hp / character.maxHp) * 100) : 0;
-  const xpPct = character.maxXp > 0 ? Math.round((character.xp / character.maxXp) * 100) : 0;
+  const hpPct = character.max_hp > 0 ? Math.round((character.hp / character.max_hp) * 100) : 0;
 
   const isOnCooldown =
-    character.cooldownExpiration != null &&
-    new Date(character.cooldownExpiration) > new Date();
+    character.cooldown_expiration != null &&
+    new Date(character.cooldown_expiration) > new Date();
 
   const inventoryUsed = character.inventory?.filter((s) => s.code !== "").length ?? 0;
 
@@ -63,11 +62,11 @@ export function CharacterCard({ character, objective }: CharacterCardProps) {
         <div>
           <div className="flex justify-between text-xs text-gray-400 mb-1">
             <span>HP</span>
-            <span>{character.hp} / {character.maxHp} ({hpPct}%)</span>
+            <span>{character.hp} / {character.max_hp} ({hpPct}%)</span>
           </div>
           <ProgressBar
             value={character.hp}
-            max={character.maxHp}
+            max={character.max_hp}
             color={hpPct > 50 ? "bg-emerald-500" : hpPct > 25 ? "bg-yellow-500" : "bg-red-500"}
           />
         </div>
@@ -76,16 +75,16 @@ export function CharacterCard({ character, objective }: CharacterCardProps) {
         <div>
           <div className="flex justify-between text-xs text-gray-400 mb-1">
             <span>XP</span>
-            <span>{character.xp} / {character.maxXp}</span>
+            <span>{character.xp} / {character.max_xp}</span>
           </div>
-          <ProgressBar value={character.xp} max={character.maxXp} color="bg-blue-500" />
+          <ProgressBar value={character.xp} max={character.max_xp} color="bg-blue-500" />
         </div>
 
         {/* Stats clés */}
         <div className="grid grid-cols-4 gap-1.5">
           <StatBadge label="Spd" value={character.speed} />
           <StatBadge label="Haste" value={character.haste} />
-          <StatBadge label="Crit" value={character.criticalStrike} />
+          <StatBadge label="Crit" value={character.critical_strike} />
           <StatBadge label="Wis" value={character.wisdom} />
         </div>
 
@@ -104,10 +103,10 @@ export function CharacterCard({ character, objective }: CharacterCardProps) {
         {character.task && (
           <div className="bg-gray-800 rounded p-2">
             <div className="flex justify-between text-xs text-gray-400 mb-1">
-              <span className="capitalize">{character.taskType}: {character.task}</span>
-              <span>{character.taskProgress}/{character.taskTotal}</span>
+              <span className="capitalize">{character.task_type}: {character.task}</span>
+              <span>{character.task_progress}/{character.task_total}</span>
             </div>
-            <ProgressBar value={character.taskProgress} max={character.taskTotal} color="bg-violet-500" />
+            <ProgressBar value={character.task_progress} max={character.task_total} color="bg-violet-500" />
           </div>
         )}
 
@@ -120,7 +119,7 @@ export function CharacterCard({ character, objective }: CharacterCardProps) {
 
         {/* Inventaire */}
         <div className="text-xs text-gray-500 text-right">
-          Inventaire : {inventoryUsed} / {character.inventoryMaxItems}
+          Inventaire : {inventoryUsed} / {character.inventory_max_items}
         </div>
       </div>
     </Link>
