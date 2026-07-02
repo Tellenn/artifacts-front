@@ -11,6 +11,23 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v6
 
+    # TEMPORAIRE — diagnostic du login Docker Hub : n'affiche jamais les
+    # valeurs, seulement leur longueur et la présence de caractères parasites.
+    - name: Debug secrets shape
+      env:
+        U: ${{ secrets.DOCKER_USERNAME }}
+        P: ${{ secrets.DOCKER_PASSWORD }}
+      run: |
+        echo "username length: ${#U}"
+        echo "password length: ${#P}"
+        [ -z "$U" ] && echo "PROBLEME: DOCKER_USERNAME est VIDE (secret absent ou cree comme Variable/Environment secret)"
+        [ -z "$P" ] && echo "PROBLEME: DOCKER_PASSWORD est VIDE (secret absent ou cree comme Variable/Environment secret)"
+        case "$P" in *$'\n'*) echo "PROBLEME: le password contient un saut de ligne";; esac
+        case "$P" in *$'\r'*) echo "PROBLEME: le password contient un retour chariot (CR)";; esac
+        case "$P" in *' '*) echo "ATTENTION: le password contient un espace";; esac
+        case "$U" in *@*) echo "ATTENTION: le username ressemble a un email — utiliser l identifiant Docker Hub (tellenn)";; esac
+        true
+
     - name: Login to Docker Hub
       uses: docker/login-action@v4
       with:
