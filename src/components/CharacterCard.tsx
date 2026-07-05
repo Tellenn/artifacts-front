@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { ArtifactsCharacter, CHARACTER_META, ROLE_COLORS, ROLE_LABELS } from "@/types/character";
+import { ArtifactsMap } from "@/types/map";
+import { MiniMap } from "@/components/MiniMap";
+import { CooldownTimer } from "@/components/CooldownTimer";
 
 interface CharacterCardProps {
   character: ArtifactsCharacter;
   objective?: string;
+  neighborhood: (ArtifactsMap | null)[];
 }
 
 function ProgressBar({ value, max, color = "bg-emerald-500" }: { value: number; max: number; color?: string }) {
@@ -27,17 +31,13 @@ function StatBadge({ label, value }: { label: string; value: number }) {
   );
 }
 
-export function CharacterCard({ character, objective }: CharacterCardProps) {
+export function CharacterCard({ character, objective, neighborhood }: CharacterCardProps) {
   const meta = CHARACTER_META[character.name];
   const role = meta?.role ?? "fighter";
   const roleColor = ROLE_COLORS[role];
   const roleLabel = ROLE_LABELS[role];
 
   const hpPct = character.max_hp > 0 ? Math.round((character.hp / character.max_hp) * 100) : 0;
-
-  const isOnCooldown =
-    character.cooldown_expiration != null &&
-    new Date(character.cooldown_expiration) > new Date();
 
   const inventoryUsed = character.inventory?.filter((s) => s.code !== "").length ?? 0;
 
@@ -88,15 +88,13 @@ export function CharacterCard({ character, objective }: CharacterCardProps) {
           <StatBadge label="Wis" value={character.wisdom} />
         </div>
 
-        {/* Position */}
-        <div className="flex items-center gap-2 text-xs text-gray-400">
-          <span>📍</span>
+        {/* Position + mini-carte */}
+        <div className="flex items-center gap-3 text-xs text-gray-400">
+          <MiniMap neighborhood={neighborhood} />
           <span>
-            ({character.x}, {character.y})
+            📍 ({character.x}, {character.y})
           </span>
-          {isOnCooldown && (
-            <span className="ml-auto text-orange-400 font-medium">⏳ Cooldown</span>
-          )}
+          <CooldownTimer expiration={character.cooldown_expiration} />
         </div>
 
         {/* Tâche */}

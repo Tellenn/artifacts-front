@@ -1,22 +1,28 @@
-import { fetchCharacters, fetchObjectives } from "@/lib/api";
+import { fetchAllMaps, fetchCharacters, fetchObjectives } from "@/lib/api";
 import { CharacterCard } from "@/components/CharacterCard";
 import { ArtifactsCharacter } from "@/types/character";
+import { ArtifactsMap } from "@/types/map";
+import { buildMapLookup, getNeighborhood } from "@/lib/maps";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   let characters: ArtifactsCharacter[] = [];
   let objectives: Record<string, string> = {};
+  let maps: ArtifactsMap[] = [];
   let error: string | null = null;
 
   try {
-    [characters, objectives] = await Promise.all([
+    [characters, objectives, maps] = await Promise.all([
       fetchCharacters(),
       fetchObjectives().catch(() => ({} as Record<string, string>)),
+      fetchAllMaps(),
     ]);
   } catch (e) {
     error = e instanceof Error ? e.message : "Erreur inconnue";
   }
+
+  const mapLookup = buildMapLookup(maps);
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
@@ -33,7 +39,12 @@ export default async function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {characters.map((char) => (
-              <CharacterCard key={char.name} character={char} objective={objectives[char.name]} />
+              <CharacterCard
+                key={char.name}
+                character={char}
+                objective={objectives[char.name]}
+                neighborhood={getNeighborhood(mapLookup, char.x, char.y, char.layer)}
+              />
             ))}
           </div>
         )}
