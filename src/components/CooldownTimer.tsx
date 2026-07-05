@@ -30,7 +30,8 @@ export function CooldownTimer({ expiration }: CooldownTimerProps) {
     () => null,
   );
 
-  if (remaining === null || remaining <= 0) {
+  // !(remaining > 0) couvre aussi NaN (date inanalysable) — rien n'est affiché.
+  if (remaining === null || !(remaining > 0)) {
     return null;
   }
 
