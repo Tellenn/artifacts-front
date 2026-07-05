@@ -97,6 +97,13 @@ export function CharacterCard({ character, objective, neighborhood }: CharacterC
           <CooldownTimer expiration={character.cooldown_expiration} />
         </div>
 
+        {/* Objectif */}
+        {objective && (
+          <div className="bg-gray-800/60 border-l-2 border-violet-500 rounded-r px-3 py-1.5 text-xs text-gray-300 italic">
+            🎯 {objective}
+          </div>
+        )}
+
         {/* Tâche */}
         {character.task && (
           <div className="bg-gray-800 rounded p-2">
@@ -105,13 +112,6 @@ export function CharacterCard({ character, objective, neighborhood }: CharacterC
               <span>{character.task_progress}/{character.task_total}</span>
             </div>
             <ProgressBar value={character.task_progress} max={character.task_total} color="bg-violet-500" />
-          </div>
-        )}
-
-        {/* Objectif */}
-        {objective && (
-          <div className="bg-gray-800/60 border-l-2 border-violet-500 rounded-r px-3 py-1.5 text-xs text-gray-300 italic">
-            🎯 {objective}
           </div>
         )}
 

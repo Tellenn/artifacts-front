@@ -14,16 +14,14 @@ export function MiniMap({ neighborhood }: MiniMapProps) {
   return (
     <div className="grid grid-cols-3 gap-0.5 shrink-0">
       {neighborhood.map((map, i) => {
-        const highlight = i === 4 ? "ring-2 ring-amber-400" : "";
-
         if (!map) {
-          return <div key={i} className={`w-7 h-7 rounded-sm bg-gray-800 ${highlight}`} />;
+          return <div key={i} className="w-7 h-7 rounded-sm bg-gray-800" />;
         }
 
         const blocked = map.access?.type === "blocked";
 
         return (
-          <div key={i} className={`w-7 h-7 rounded-sm overflow-hidden bg-gray-800 ${highlight}`}>
+          <div key={i} className="w-7 h-7 rounded-sm overflow-hidden bg-gray-800">
             {/* eslint-disable-next-line @next/next/no-img-element -- tuiles statiques ~2 Ko, next/image superflu */}
             <img
               src={`https://artifactsmmo.com/images/maps/${map.skin}.png`}
