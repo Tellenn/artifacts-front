@@ -118,6 +118,21 @@ function PoolTaskCard({ task }: PoolTaskCardProps) {
             <span className="font-mono tabular-nums">
               {task.targetQuantity.toLocaleString("fr-FR")}
             </span>
+            {task.bankQuantityAtPost != null && (
+              <>
+                {" · "}
+                <span
+                  className="text-sky-400"
+                  title="Stock banque disponible au moment de la publication (le besoin publié en est déjà net)"
+                >
+                  🏦{" "}
+                  <span className="font-mono tabular-nums">
+                    {task.bankQuantityAtPost.toLocaleString("fr-FR")}
+                  </span>{" "}
+                  en banque
+                </span>
+              </>
+            )}
           </p>
         </div>
         <span className="font-mono text-lg tabular-nums text-gray-200 shrink-0">

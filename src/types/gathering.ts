@@ -15,6 +15,8 @@ export interface GatheringTaskStatus {
   remaining: number;
   reserved: number;
   progressPercent: number;
+  /** Stock banque disponible au moment du dernier post (absent sur un backend antérieur). */
+  bankQuantityAtPost?: number;
   reservations: ReservationStatus[];
   createdAt: string;
 }
