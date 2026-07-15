@@ -11,9 +11,11 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ??
   "http://localhost:8888";
 
+// Revalidation à 60 s (et non 10 s) : chaque rendu appelle CharacterController,
+// qui interroge l'API Artifacts en amont — quota 2000 req/h partagé avec le bot.
 export async function fetchCharacters(): Promise<ArtifactsCharacter[]> {
   const response = await fetch(`${API_BASE}/characters`, {
-    next: { revalidate: 10 },
+    next: { revalidate: 60 },
   });
 
   if (!response.ok) {
@@ -25,7 +27,7 @@ export async function fetchCharacters(): Promise<ArtifactsCharacter[]> {
 
 export async function fetchObjectives(): Promise<Record<string, string>> {
   const response = await fetch(`${API_BASE}/characters/objectives`, {
-    next: { revalidate: 10 },
+    next: { revalidate: 60 },
   });
 
   if (!response.ok) {
