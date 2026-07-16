@@ -5,6 +5,15 @@ export interface MapAccess {
   type: string;
 }
 
+export interface MapContent {
+  type: string;
+  code: string;
+}
+
+export interface MapInteractions {
+  content: MapContent | null;
+}
+
 export interface ArtifactsMap {
   map_id: number;
   name: string;
@@ -13,4 +22,5 @@ export interface ArtifactsMap {
   y: number;
   layer: string;
   access: MapAccess | null;
+  interactions: MapInteractions | null;
 }

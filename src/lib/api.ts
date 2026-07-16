@@ -2,6 +2,7 @@ import { ArtifactsCharacter } from "@/types/character";
 import { BankDetails, BankItem } from "@/types/bank";
 import { GatheringTaskStatus } from "@/types/gathering";
 import { ArtifactsMap } from "@/types/map";
+import { MonsterData, ResourceData } from "@/types/tile-content";
 
 // `API_URL` est lue à l'exécution (configurable au runtime Docker), car
 // l'appel ne se fait que côté serveur. `NEXT_PUBLIC_API_URL` reste un fallback
@@ -113,5 +114,36 @@ export async function fetchAllMaps(): Promise<ArtifactsMap[]> {
     return maps;
   } catch {
     return [];
+  }
+}
+
+/**
+ * Détail d'une ressource publique (skill, niveau, drops) pour les tooltips.
+ * Cache long (1 h) : données quasi statiques. `null` en cas d'erreur —
+ * le tooltip est un enrichissement, jamais bloquant.
+ */
+export async function fetchResource(code: string): Promise<ResourceData | null> {
+  return fetchPublicDetail(`/resources/${code}`);
+}
+
+/** Détail d'un monstre public (niveau, HP, drops) — mêmes règles que fetchResource. */
+export async function fetchMonster(code: string): Promise<MonsterData | null> {
+  return fetchPublicDetail(`/monsters/${code}`);
+}
+
+async function fetchPublicDetail<T>(path: string): Promise<T | null> {
+  try {
+    const response = await fetch(`${ARTIFACTS_PUBLIC_API}${path}`, {
+      next: { revalidate: 3600 },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const body: { data: T } = await response.json();
+    return body.data;
+  } catch {
+    return null;
   }
 }

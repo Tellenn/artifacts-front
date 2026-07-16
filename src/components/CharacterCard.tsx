@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArtifactsCharacter, CHARACTER_META, ROLE_COLORS, ROLE_LABELS } from "@/types/character";
 import { ArtifactsMap } from "@/types/map";
+import { TileContentInfo } from "@/types/tile-content";
 import { MiniMap } from "@/components/MiniMap";
 import { CooldownTimer } from "@/components/CooldownTimer";
 
@@ -8,6 +9,7 @@ interface CharacterCardProps {
   character: ArtifactsCharacter;
   objective?: string;
   neighborhood: (ArtifactsMap | null)[];
+  tileContents?: Record<string, TileContentInfo>;
 }
 
 function ProgressBar({ value, max, color = "bg-emerald-500" }: { value: number; max: number; color?: string }) {
@@ -31,7 +33,7 @@ function StatBadge({ label, value }: { label: string; value: number }) {
   );
 }
 
-export function CharacterCard({ character, objective, neighborhood }: CharacterCardProps) {
+export function CharacterCard({ character, objective, neighborhood, tileContents }: CharacterCardProps) {
   const meta = CHARACTER_META[character.name];
   const role = meta?.role ?? "fighter";
   const roleColor = ROLE_COLORS[role];
@@ -90,7 +92,7 @@ export function CharacterCard({ character, objective, neighborhood }: CharacterC
 
         {/* Position + mini-carte */}
         <div className="flex items-center gap-3 text-xs text-gray-400">
-          <MiniMap neighborhood={neighborhood} />
+          <MiniMap neighborhood={neighborhood} contents={tileContents} />
           <span>
             📍 ({character.x}, {character.y})
           </span>

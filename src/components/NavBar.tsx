@@ -13,6 +13,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Personnages", icon: "⚔️", match: ["/characters"] },
+  { href: "/map", label: "Carte", icon: "🗺️", match: [] },
   { href: "/bank", label: "Banque", icon: "🏦", match: [] },
   { href: "/tasks", label: "Tâches", icon: "📋", match: [] },
 ];
@@ -63,7 +64,7 @@ export function NavBar() {
         aria-label="Navigation principale"
         className="fixed bottom-0 inset-x-0 z-40 md:hidden border-t border-gray-800 bg-gray-950/95 backdrop-blur"
       >
-        <div className="grid grid-cols-3">
+        <div className="grid grid-cols-4">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}

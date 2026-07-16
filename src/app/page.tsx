@@ -3,6 +3,7 @@ import { CharacterCard } from "@/components/CharacterCard";
 import { ArtifactsCharacter } from "@/types/character";
 import { ArtifactsMap } from "@/types/map";
 import { buildMapLookup, getNeighborhood } from "@/lib/maps";
+import { resolveTileContents } from "@/lib/tile-content";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,15 @@ export default async function DashboardPage() {
   }
 
   const mapLookup = buildMapLookup(maps);
+  const neighborhoods = new Map(
+    characters.map((char) => [
+      char.name,
+      getNeighborhood(mapLookup, char.x, char.y, char.layer),
+    ]),
+  );
+  const tileContents = await resolveTileContents(
+    [...neighborhoods.values()].flat(),
+  );
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
@@ -43,7 +53,8 @@ export default async function DashboardPage() {
                 key={char.name}
                 character={char}
                 objective={objectives[char.name]}
-                neighborhood={getNeighborhood(mapLookup, char.x, char.y, char.layer)}
+                neighborhood={neighborhoods.get(char.name) ?? []}
+                tileContents={tileContents}
               />
             ))}
           </div>
