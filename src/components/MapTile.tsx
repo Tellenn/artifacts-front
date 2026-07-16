@@ -19,7 +19,7 @@ const CONTENT_OVERLAYS: Record<string, string> = {
   resource: "bg-green-500/35",
 };
 const INTERACTION_OVERLAY = "bg-blue-500/35";
-const TRANSITION_OVERLAY = "bg-orange-500/40";
+const TRANSITION_OVERLAY = "bg-purple-500/40";
 const BLOCKED_OVERLAY = "bg-black/70";
 const EMPTY_OVERLAY = "bg-gray-500/45";
 
