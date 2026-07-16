@@ -6,12 +6,16 @@ import { readApiKeyCookieClient } from "@/lib/api-key";
 
 const REALTIME_URL = "wss://realtime.artifactsmmo.com";
 
-/** Événements souscrits — même protocole que le backend (token + subscriptions). */
+/**
+ * Événements souscrits — noms exacts de docs.artifactsmmo.com/members/websockets
+ * (un nom inconnu du serveur ferme la connexion en 1008 « Invalid subscription
+ * type » ; c'est bien `raid_ended`, pas `raid_removed`).
+ */
 const SUBSCRIPTIONS = [
   "event_spawn",
   "event_removed",
   "raid_started",
-  "raid_removed",
+  "raid_ended",
   "grandexchange_sell_order",
   "grandexchange_buy_order",
   "grandexchange_buy",

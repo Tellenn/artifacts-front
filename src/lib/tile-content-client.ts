@@ -8,15 +8,22 @@ import {
   tileContentKey,
 } from "@/types/tile-content";
 import { buildMonsterInfo, buildResourceInfo } from "@/lib/tile-content-shared";
+import { cacheGet, cacheSet } from "@/lib/client-cache";
 
 const ARTIFACTS_PUBLIC_API = "https://api.artifactsmmo.com";
 
-/** Cache mémoire par session : contenus quasi statiques, null = échec (retentable). */
+/** Résolutions simultanées max — un burst parallèle percute le rate limit public. */
+const RESOLVE_BATCH_SIZE = 5;
+
+/** Contenus quasi statiques : 24 h, aligné sur le revalidate serveur. */
+const CONTENT_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** Cache mémoire par session, devant le localStorage. null = échec (retentable). */
 const contentCache = new Map<string, TileContentInfo | null>();
 
 /**
- * Variante navigateur de resolveTileContents : résout les contenus manquants
- * des cases données et retourne uniquement les entrées résolues. Jamais
+ * Variante navigateur de resolveTileContents : mémoire → localStorage → API
+ * publique (par lots). Retourne uniquement les entrées résolues. Jamais
  * bloquant — un échec rend un tooltip absent, pas une erreur.
  */
 export async function resolveTileContentsClient(
@@ -30,13 +37,18 @@ export async function resolveTileContentsClient(
     }
   }
 
+  const pending = [...uniqueContents.entries()];
   const resolved: (readonly [string, TileContentInfo])[] = [];
-  await Promise.all(
-    [...uniqueContents.entries()].map(async ([key, content]) => {
-      const info = await resolveContentCached(key, content);
-      if (info) resolved.push([key, info] as const);
-    }),
-  );
+
+  for (let i = 0; i < pending.length; i += RESOLVE_BATCH_SIZE) {
+    const batch = await Promise.all(
+      pending.slice(i, i + RESOLVE_BATCH_SIZE).map(async ([key, content]) => {
+        const info = await resolveContentCached(key, content);
+        return info ? ([key, info] as const) : null;
+      }),
+    );
+    resolved.push(...batch.filter((entry) => entry !== null));
+  }
 
   return Object.fromEntries(resolved);
 }
@@ -45,11 +57,20 @@ async function resolveContentCached(
   key: string,
   content: MapContent,
 ): Promise<TileContentInfo | null> {
-  const cached = contentCache.get(key);
-  if (cached) return cached;
+  const inMemory = contentCache.get(key);
+  if (inMemory) return inMemory;
+
+  const stored = cacheGet<TileContentInfo>(`tile:${key}`);
+  if (stored) {
+    contentCache.set(key, stored);
+    return stored;
+  }
 
   const info = await resolveContent(content).catch(() => null);
-  if (info) contentCache.set(key, info);
+  if (info) {
+    contentCache.set(key, info);
+    cacheSet(`tile:${key}`, info, CONTENT_TTL_MS);
+  }
   return info;
 }
 

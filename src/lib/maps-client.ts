@@ -1,24 +1,38 @@
 "use client";
 
 import { ArtifactsMap } from "@/types/map";
+import { cacheGet, cacheSet } from "@/lib/client-cache";
 
 const ARTIFACTS_PUBLIC_API = "https://api.artifactsmmo.com";
+
+const MAPS_CACHE_KEY = "maps:all";
+/** Aligné sur le revalidate serveur : les cartes sont quasi statiques. */
+const MAPS_TTL_MS = 60 * 60 * 1000;
 
 let mapsPromise: Promise<ArtifactsMap[]> | null = null;
 
 /**
- * Toutes les cartes du jeu, chargées une seule fois par session navigateur
- * (données quasi statiques, ~1400 entrées). `[]` en cas d'échec — et on
+ * Toutes les cartes du jeu (~1400 entrées) : localStorage (TTL 1 h) d'abord,
+ * sinon un seul téléchargement par session. `[]` en cas d'échec — et on
  * retentera au prochain appel plutôt que de mettre l'échec en cache.
  */
 export function loadAllMapsClient(): Promise<ArtifactsMap[]> {
   if (!mapsPromise) {
-    mapsPromise = fetchAllMaps().catch(() => {
+    mapsPromise = loadMaps().catch(() => {
       mapsPromise = null;
       return [];
     });
   }
   return mapsPromise;
+}
+
+async function loadMaps(): Promise<ArtifactsMap[]> {
+  const cached = cacheGet<ArtifactsMap[]>(MAPS_CACHE_KEY);
+  if (cached && cached.length > 0) return cached;
+
+  const maps = await fetchAllMaps();
+  cacheSet(MAPS_CACHE_KEY, maps, MAPS_TTL_MS);
+  return maps;
 }
 
 async function fetchAllMaps(): Promise<ArtifactsMap[]> {
