@@ -3,6 +3,7 @@ import { fetchAllMaps, fetchCharacters } from "@/lib/api";
 import { resolveTileContents } from "@/lib/tile-content";
 import { buildMapLookup } from "@/lib/maps";
 import { MapTile } from "@/components/MapTile";
+import { MapCharacterMarkers } from "@/components/MapCharacterMarkers";
 import { ArtifactsCharacter } from "@/types/character";
 import { ArtifactsMap } from "@/types/map";
 import { tileContentKey } from "@/types/tile-content";
@@ -46,21 +47,6 @@ function computeBounds(maps: ArtifactsMap[]): Bounds {
   };
 }
 
-function CharacterMarker({ names }: { names: string[] }) {
-  return (
-    <div className="pointer-events-none absolute inset-x-0 -top-1.5 z-20 flex flex-col items-center gap-0.5">
-      {names.map((name) => (
-        <span
-          key={name}
-          className="rounded-full bg-violet-600 px-1.5 py-px text-[9px] font-semibold text-white shadow"
-        >
-          {name}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 interface PageProps {
   searchParams: Promise<{ layer?: string }>;
 }
@@ -99,13 +85,6 @@ export default async function MapPage({ searchParams }: PageProps) {
   const bounds = computeBounds(layerMaps);
   const tileContents = await resolveTileContents(layerMaps);
 
-  const charactersByCell = new Map<string, string[]>();
-  for (const char of characters) {
-    if (char.layer !== activeLayer) continue;
-    const key = `${char.x}:${char.y}`;
-    charactersByCell.set(key, [...(charactersByCell.get(key) ?? []), char.name]);
-  }
-
   const columns = bounds.maxX - bounds.minX + 1;
   const rows: number[] = [];
   for (let y = bounds.minY; y <= bounds.maxY; y++) rows.push(y);
@@ -142,24 +121,24 @@ export default async function MapPage({ searchParams }: PageProps) {
         </p>
 
         <div className="overflow-auto rounded-xl border border-gray-800 bg-gray-900/40 p-4">
-          <div
-            className="inline-grid gap-0.5"
-            style={{ gridTemplateColumns: `repeat(${columns}, 3.5rem)` }}
-          >
-            {rows.map((y) =>
-              cols.map((x) => {
-                const map = lookup.get(`${activeLayer}:${x}:${y}`) ?? null;
-                if (!map) {
-                  // Trou dans le monde : cellule vide transparente.
-                  return <div key={`${x}:${y}`} className="h-14 w-14" />;
-                }
+          <div className="relative inline-block">
+            <div
+              className="inline-grid gap-0.5"
+              style={{ gridTemplateColumns: `repeat(${columns}, 3.5rem)` }}
+            >
+              {rows.map((y) =>
+                cols.map((x) => {
+                  const map = lookup.get(`${activeLayer}:${x}:${y}`) ?? null;
+                  if (!map) {
+                    // Trou dans le monde : cellule vide transparente.
+                    return <div key={`${x}:${y}`} className="h-14 w-14" />;
+                  }
 
-                const content = map.interactions?.content;
-                const names = charactersByCell.get(`${x}:${y}`);
+                  const content = map.interactions?.content;
 
-                return (
-                  <div key={`${x}:${y}`} className="relative">
+                  return (
                     <MapTile
+                      key={`${x}:${y}`}
                       map={map}
                       size="lg"
                       content={
@@ -170,11 +149,17 @@ export default async function MapPage({ searchParams }: PageProps) {
                           : undefined
                       }
                     />
-                    {names && <CharacterMarker names={names} />}
-                  </div>
-                );
-              }),
-            )}
+                  );
+                }),
+              )}
+            </div>
+            {/* Marqueurs personnages en calque absolu — positions live via WSS */}
+            <MapCharacterMarkers
+              initialCharacters={characters}
+              activeLayer={activeLayer}
+              minX={bounds.minX}
+              minY={bounds.minY}
+            />
           </div>
         </div>
       </div>

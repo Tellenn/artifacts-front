@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRealtimeStatus } from "@/lib/realtime";
 
 interface NavItem {
   href: string;
@@ -22,6 +23,32 @@ const NAV_ITEMS: NavItem[] = [
 function isActive(item: NavItem, pathname: string): boolean {
   if (pathname === item.href) return true;
   return item.match.some((prefix) => pathname.startsWith(prefix));
+}
+
+/** Pastille d'état du temps réel WSS — remplace le libellé de polling quand actif. */
+function RealtimeIndicator() {
+  const status = useRealtimeStatus();
+
+  if (status === "off") {
+    return (
+      <span className="hidden lg:block text-xs text-gray-500">
+        Actualisé toutes les 10s
+      </span>
+    );
+  }
+
+  const connected = status === "connected";
+  return (
+    <span className="hidden lg:flex items-center gap-1.5 text-xs text-gray-400">
+      <span
+        className={`h-2 w-2 rounded-full ${
+          connected ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
+        }`}
+        aria-hidden
+      />
+      {connected ? "Temps réel" : "Connexion…"}
+    </span>
+  );
 }
 
 export function NavBar() {
@@ -54,9 +81,7 @@ export function NavBar() {
               </Link>
             ))}
           </div>
-          <span className="hidden lg:block text-xs text-gray-500">
-            Actualisé toutes les 10s
-          </span>
+          <RealtimeIndicator />
         </nav>
       </header>
 

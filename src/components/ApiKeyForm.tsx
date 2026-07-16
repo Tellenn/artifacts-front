@@ -2,16 +2,10 @@
 
 import { FormEvent, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { API_KEY_COOKIE } from "@/lib/api-key";
+import { API_KEY_COOKIE, readApiKeyCookieClient } from "@/lib/api-key";
+import { syncRealtimeConnection } from "@/lib/realtime";
 
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
-
-function readApiKeyCookie(): string | null {
-  const entry = document.cookie
-    .split("; ")
-    .find((cookie) => cookie.startsWith(`${API_KEY_COOKIE}=`));
-  return entry ? decodeURIComponent(entry.slice(API_KEY_COOKIE.length + 1)) : null;
-}
 
 // document.cookie n'émet aucun événement : mini-store notifié manuellement
 // après chaque écriture, lu via useSyncExternalStore (null au rendu serveur).
@@ -45,7 +39,7 @@ export function ApiKeyForm() {
   const router = useRouter();
   const savedKey = useSyncExternalStore(
     subscribeToCookie,
-    readApiKeyCookie,
+    readApiKeyCookieClient,
     () => null,
   );
   const [input, setInput] = useState("");
@@ -58,6 +52,7 @@ export function ApiKeyForm() {
 
     writeApiKeyCookie(key);
     notifyCookieChanged();
+    syncRealtimeConnection();
     setInput("");
     setMessage("Clé enregistrée — les prochains appels l'utiliseront.");
     // Re-rend les Server Components pour que les fetch serveur voient le cookie.
@@ -67,6 +62,7 @@ export function ApiKeyForm() {
   function handleClear() {
     clearApiKeyCookie();
     notifyCookieChanged();
+    syncRealtimeConnection();
     setMessage("Clé effacée.");
     router.refresh();
   }

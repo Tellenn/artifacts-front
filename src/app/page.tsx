@@ -1,5 +1,5 @@
 import { fetchAllMaps, fetchCharacters, fetchObjectives } from "@/lib/api";
-import { CharacterCard } from "@/components/CharacterCard";
+import { LiveCharacterCard } from "@/components/LiveCharacterCard";
 import { ArtifactsCharacter } from "@/types/character";
 import { ArtifactsMap } from "@/types/map";
 import { buildMapLookup, getNeighborhood } from "@/lib/maps";
@@ -49,7 +49,7 @@ export default async function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {characters.map((char) => (
-              <CharacterCard
+              <LiveCharacterCard
                 key={char.name}
                 character={char}
                 objective={objectives[char.name]}

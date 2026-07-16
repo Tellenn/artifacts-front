@@ -1,11 +1,7 @@
 import { fetchMonster, fetchResource } from "@/lib/api";
 import { ArtifactsMap, MapContent } from "@/types/map";
-import {
-  ApiDrop,
-  DropInfo,
-  TileContentInfo,
-  tileContentKey,
-} from "@/types/tile-content";
+import { TileContentInfo, tileContentKey } from "@/types/tile-content";
+import { buildMonsterInfo, buildResourceInfo } from "@/lib/tile-content-shared";
 
 /** Résolutions simultanées max vers l'API publique — évite un burst rate-limité à froid. */
 const RESOLVE_BATCH_SIZE = 10;
@@ -62,45 +58,13 @@ async function resolveContent(
   switch (content.type) {
     case "monster": {
       const monster = await fetchMonster(content.code);
-      return (
-        monster && {
-          kind: "monster",
-          code: monster.code,
-          name: monster.name,
-          level: monster.level,
-          hp: monster.hp,
-          drops: toDropInfos(monster.drops),
-        }
-      );
+      return monster && buildMonsterInfo(monster);
     }
     case "resource": {
       const resource = await fetchResource(content.code);
-      return (
-        resource && {
-          kind: "resource",
-          code: resource.code,
-          name: resource.name,
-          skill: resource.skill,
-          levelRequired: resource.level,
-          drops: toDropInfos(resource.drops),
-        }
-      );
+      return resource && buildResourceInfo(resource);
     }
     default:
       return { kind: "other", code: content.code, type: content.type };
   }
-}
-
-// `drops` peut manquer si l'upstream renvoie une réponse dégradée (déjà vu en
-// prod, mise en cache par Next pendant 1 h) — ne jamais lui faire confiance.
-function toDropInfos(drops: ApiDrop[] | undefined): DropInfo[] {
-  if (!Array.isArray(drops)) {
-    return [];
-  }
-  return drops.map((drop) => ({
-    code: drop.code,
-    rate: drop.rate,
-    minQuantity: drop.min_quantity,
-    maxQuantity: drop.max_quantity,
-  }));
 }
