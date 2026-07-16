@@ -119,8 +119,8 @@ export async function fetchAllMaps(): Promise<ArtifactsMap[]> {
 
 /**
  * Détail d'une ressource publique (skill, niveau, drops) pour les tooltips.
- * Cache long (1 h) : données quasi statiques. `null` en cas d'erreur —
- * le tooltip est un enrichissement, jamais bloquant.
+ * Cache très long (24 h) : données statiques hors patch du jeu. `null` en cas
+ * d'erreur — le tooltip est un enrichissement, jamais bloquant.
  */
 export async function fetchResource(code: string): Promise<ResourceData | null> {
   return fetchPublicDetail(`/resources/${code}`);
@@ -134,7 +134,7 @@ export async function fetchMonster(code: string): Promise<MonsterData | null> {
 async function fetchPublicDetail<T>(path: string): Promise<T | null> {
   try {
     const response = await fetch(`${ARTIFACTS_PUBLIC_API}${path}`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: 86400 },
     });
 
     if (!response.ok) {
@@ -142,6 +142,13 @@ async function fetchPublicDetail<T>(path: string): Promise<T | null> {
     }
 
     const body: { data: T } = await response.json();
+
+    // Réponse dégradée (rate limit ou erreur upstream renvoyée en 200) : la
+    // mettre en cache sous forme de crash a déjà cassé /map — on la rejette.
+    if (typeof body?.data !== "object" || body.data === null) {
+      return null;
+    }
+
     return body.data;
   } catch {
     return null;
