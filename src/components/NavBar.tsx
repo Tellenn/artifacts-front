@@ -16,6 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/map", label: "Carte", icon: "🗺️", match: [] },
   { href: "/bank", label: "Banque", icon: "🏦", match: [] },
   { href: "/tasks", label: "Tâches", icon: "📋", match: [] },
+  { href: "/settings", label: "Réglages", icon: "⚙️", match: [] },
 ];
 
 function isActive(item: NavItem, pathname: string): boolean {
@@ -64,7 +65,7 @@ export function NavBar() {
         aria-label="Navigation principale"
         className="fixed bottom-0 inset-x-0 z-40 md:hidden border-t border-gray-800 bg-gray-950/95 backdrop-blur"
       >
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-5">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}

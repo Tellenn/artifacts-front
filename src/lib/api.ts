@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { ArtifactsCharacter } from "@/types/character";
+import { API_KEY_COOKIE } from "@/lib/api-key";
 import { BankDetails, BankItem } from "@/types/bank";
 import { GatheringTaskStatus } from "@/types/gathering";
 import { ArtifactsMap } from "@/types/map";
@@ -78,6 +80,16 @@ export async function fetchGatheringTasks(): Promise<GatheringTaskStatus[]> {
 // données de cartes (statiques) sans authentification.
 const ARTIFACTS_PUBLIC_API = "https://api.artifactsmmo.com";
 
+/**
+ * Header Authorization pour l'API Artifacts si l'utilisateur a enregistré sa
+ * clé dans les Réglages (cookie navigateur, lu ici côté serveur). Les endpoints
+ * publics fonctionnent sans clé — le header est un enrichissement, jamais requis.
+ */
+async function artifactsAuthHeaders(): Promise<Record<string, string>> {
+  const key = (await cookies()).get(API_KEY_COOKIE)?.value;
+  return key ? { Authorization: `Bearer ${key}` } : {};
+}
+
 interface MapsPage {
   data: ArtifactsMap[];
   pages: number;
@@ -98,7 +110,7 @@ export async function fetchAllMaps(): Promise<ArtifactsMap[]> {
     do {
       const response = await fetch(
         `${ARTIFACTS_PUBLIC_API}/maps?size=100&page=${page}`,
-        { next: { revalidate: 3600 } },
+        { headers: await artifactsAuthHeaders(), next: { revalidate: 3600 } },
       );
 
       if (!response.ok) {
@@ -134,6 +146,7 @@ export async function fetchMonster(code: string): Promise<MonsterData | null> {
 async function fetchPublicDetail<T>(path: string): Promise<T | null> {
   try {
     const response = await fetch(`${ARTIFACTS_PUBLIC_API}${path}`, {
+      headers: await artifactsAuthHeaders(),
       next: { revalidate: 86400 },
     });
 
