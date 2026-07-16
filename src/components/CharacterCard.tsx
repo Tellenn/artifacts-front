@@ -83,8 +83,7 @@ export function CharacterCard({ character, objective, neighborhood, tileContents
         </div>
 
         {/* Stats clés */}
-        <div className="grid grid-cols-4 gap-1.5">
-          <StatBadge label="Spd" value={character.speed} />
+        <div className="grid grid-cols-3 gap-1.5">
           <StatBadge label="Haste" value={character.haste} />
           <StatBadge label="Crit" value={character.critical_strike} />
           <StatBadge label="Wis" value={character.wisdom} />
