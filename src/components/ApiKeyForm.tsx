@@ -3,7 +3,7 @@
 import { FormEvent, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { API_KEY_COOKIE, readApiKeyCookieClient } from "@/lib/api-key";
-import { syncRealtimeConnection } from "@/lib/realtime";
+import { syncRealtimeConnection, useRealtimeError } from "@/lib/realtime";
 
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
@@ -44,6 +44,7 @@ export function ApiKeyForm() {
   );
   const [input, setInput] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const realtimeError = useRealtimeError();
 
   function handleSave(event: FormEvent) {
     event.preventDefault();
@@ -117,6 +118,11 @@ export function ApiKeyForm() {
       </div>
 
       {message && <p className="text-sm text-gray-400">{message}</p>}
+      {realtimeError && (
+        <p className="text-sm text-red-400">
+          Temps réel refusé par le serveur : {realtimeError}
+        </p>
+      )}
     </form>
   );
 }

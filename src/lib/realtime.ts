@@ -26,7 +26,7 @@ const MAX_EVENTS_KEPT = 100;
 const INITIAL_RECONNECT_DELAY_MS = 1_000;
 const MAX_RECONNECT_DELAY_MS = 30_000;
 
-export type RealtimeStatus = "off" | "connecting" | "connected";
+export type RealtimeStatus = "off" | "connecting" | "connected" | "error";
 
 export interface RealtimeEvent {
   type: string;
@@ -36,21 +36,28 @@ export interface RealtimeEvent {
 
 export interface RealtimeState {
   status: RealtimeStatus;
+  /** Message d'erreur renvoyé par le serveur (token/subscription rejeté), sinon null. */
+  lastError: string | null;
   /** Derniers états connus des personnages, mis à jour à chaque account_log. */
   characters: Record<string, ArtifactsCharacter>;
   /** Feed brut des derniers événements reçus (plafonné), pour affichage futur. */
   events: RealtimeEvent[];
 }
 
-const SERVER_STATE: RealtimeState = { status: "off", characters: {}, events: [] };
+const SERVER_STATE: RealtimeState = { status: "off", lastError: null, characters: {}, events: [] };
 
-let state: RealtimeState = { status: "off", characters: {}, events: [] };
+let state: RealtimeState = { status: "off", lastError: null, characters: {}, events: [] };
 const listeners = new Set<() => void>();
 
 let socket: WebSocket | null = null;
 let connectedKey: string | null = null;
 let reconnectAttempts = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+/** Rejet définitif du serveur (token/subscription invalide) : ne pas reconnecter. */
+let fatalRejection = false;
+
+/** Fermeture 1008 = policy violation : le serveur a refusé le token ou une subscription. */
+const CLOSE_POLICY_VIOLATION = 1008;
 
 function emit() {
   listeners.forEach((listener) => listener());
@@ -74,8 +81,9 @@ export function syncRealtimeConnection() {
 
   teardown();
   connectedKey = key;
+  fatalRejection = false;
   if (!key) {
-    setState({ status: "off" });
+    setState({ status: "off", lastError: null });
     return;
   }
   open(key);
@@ -98,13 +106,15 @@ function teardown() {
 }
 
 function open(key: string) {
-  setState({ status: "connecting" });
+  setState({ status: "connecting", lastError: null });
   const ws = new WebSocket(REALTIME_URL);
   socket = ws;
 
   ws.onopen = () => {
     ws.send(JSON.stringify({ token: key, subscriptions: SUBSCRIPTIONS }));
     reconnectAttempts = 0;
+    // Le serveur ne confirme pas la souscription : on est « connecté » tant
+    // qu'il ne renvoie pas de frame {"error": ...} ni de close 1008.
     setState({ status: "connected" });
   };
 
@@ -114,8 +124,14 @@ function open(key: string) {
 
   ws.onerror = () => ws.close();
 
-  ws.onclose = () => {
+  ws.onclose = (event) => {
     socket = null;
+    if (fatalRejection || event.code === CLOSE_POLICY_VIOLATION) {
+      const reason = state.lastError ?? event.reason ?? "Connexion refusée par le serveur";
+      console.error(`[realtime] Connexion WSS refusée (close ${event.code}): ${reason}`);
+      setState({ status: "error", lastError: reason });
+      return;
+    }
     scheduleReconnect(key);
   };
 }
@@ -143,6 +159,16 @@ function handleMessage(raw: string) {
     return;
   }
   if (!parsed || typeof parsed !== "object") return;
+
+  // Le serveur signale un rejet (token/subscription invalide) par une frame
+  // {"error": "..."} juste avant de fermer — la boucle de reconnexion doit s'arrêter.
+  const { error } = parsed as { error?: unknown };
+  if (typeof error === "string") {
+    fatalRejection = true;
+    console.error(`[realtime] Erreur serveur WSS: ${error}`);
+    setState({ status: "error", lastError: error });
+    return;
+  }
 
   const { type, data } = parsed as { type?: unknown; data?: unknown };
   if (typeof type !== "string" || type.length === 0) return;
@@ -218,5 +244,14 @@ export function useLiveCharacters(): Record<string, ArtifactsCharacter> {
     subscribeRealtime,
     () => state.characters,
     () => SERVER_STATE.characters,
+  );
+}
+
+/** Dernier message d'erreur du serveur temps réel, null si tout va bien. */
+export function useRealtimeError(): string | null {
+  return useSyncExternalStore(
+    subscribeRealtime,
+    () => state.lastError,
+    () => null,
   );
 }

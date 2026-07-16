@@ -37,16 +37,16 @@ function RealtimeIndicator() {
     );
   }
 
-  const connected = status === "connected";
+  const style = {
+    connected: { dot: "bg-emerald-500", label: "Temps réel" },
+    connecting: { dot: "bg-amber-500 animate-pulse", label: "Connexion…" },
+    error: { dot: "bg-red-500", label: "Erreur temps réel" },
+  }[status];
+
   return (
     <span className="hidden lg:flex items-center gap-1.5 text-xs text-gray-400">
-      <span
-        className={`h-2 w-2 rounded-full ${
-          connected ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
-        }`}
-        aria-hidden
-      />
-      {connected ? "Temps réel" : "Connexion…"}
+      <span className={`h-2 w-2 rounded-full ${style.dot}`} aria-hidden />
+      {style.label}
     </span>
   );
 }
