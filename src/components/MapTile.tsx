@@ -12,11 +12,58 @@ const SIZE_CLASSES = {
   lg: "w-14 h-14",
 } as const;
 
-const CONTENT_DOT_COLORS: Record<TileContentInfo["kind"], string> = {
-  monster: "bg-red-400",
-  resource: "bg-emerald-400",
-  other: "bg-amber-300",
+// Filtres d'activité : monstre = combat, ressource = récolte, tout autre
+// contenu (banque, atelier, PNJ…) = interaction, transition = passage.
+const CONTENT_OVERLAYS: Record<string, string> = {
+  monster: "bg-red-500/35",
+  resource: "bg-green-500/35",
 };
+const INTERACTION_OVERLAY = "bg-blue-500/35";
+const TRANSITION_OVERLAY = "bg-orange-500/40";
+const BLOCKED_OVERLAY = "bg-black/70";
+const EMPTY_OVERLAY = "bg-gray-500/45";
+
+/** Couleurs d'activité de la case — deux entrées = split diagonal. */
+function overlayColors(map: ArtifactsMap): string[] {
+  if (map.access?.type === "blocked") {
+    return [BLOCKED_OVERLAY];
+  }
+
+  const colors: string[] = [];
+  const content = map.interactions?.content;
+  if (content) {
+    colors.push(CONTENT_OVERLAYS[content.type] ?? INTERACTION_OVERLAY);
+  }
+  if (map.interactions?.transition) {
+    colors.push(TRANSITION_OVERLAY);
+  }
+
+  return colors.length > 0 ? colors : [EMPTY_OVERLAY];
+}
+
+function ActivityOverlay({ colors }: { colors: string[] }) {
+  if (colors.length === 1) {
+    return (
+      <div
+        className={`pointer-events-none absolute inset-0 rounded-sm ${colors[0]}`}
+      />
+    );
+  }
+
+  // Deux activités : moitié/moitié en diagonale.
+  return (
+    <>
+      <div
+        className={`pointer-events-none absolute inset-0 rounded-sm ${colors[0]}`}
+        style={{ clipPath: "polygon(0 0, 100% 0, 0 100%)" }}
+      />
+      <div
+        className={`pointer-events-none absolute inset-0 rounded-sm ${colors[1]}`}
+        style={{ clipPath: "polygon(100% 0, 100% 100%, 0 100%)" }}
+      />
+    </>
+  );
+}
 
 const CONTENT_TYPE_LABELS: Record<string, string> = {
   bank: "Banque",
@@ -44,24 +91,16 @@ export function MapTile({ map, content, size = "sm" }: MapTileProps) {
     return <div className={`${sizeClass} rounded-sm bg-gray-800`} />;
   }
 
-  const blocked = map.access?.type === "blocked";
-
   return (
     <div className={`group relative ${sizeClass} rounded-sm bg-gray-800`}>
       <img
         src={`https://artifactsmmo.com/images/maps/${map.skin}.png`}
         alt={map.name}
         loading="lazy"
-        className={`h-full w-full rounded-sm object-cover ${blocked ? "opacity-40" : ""}`}
+        className="h-full w-full rounded-sm object-cover"
       />
-      {content && (
-        <>
-          <span
-            className={`absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full ring-1 ring-gray-950 ${CONTENT_DOT_COLORS[content.kind]}`}
-          />
-          <TileTooltip content={content} />
-        </>
-      )}
+      <ActivityOverlay colors={overlayColors(map)} />
+      {content && <TileTooltip content={content} />}
     </div>
   );
 }

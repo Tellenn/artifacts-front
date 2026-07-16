@@ -10,8 +10,16 @@ export interface MapContent {
   code: string;
 }
 
+export interface MapTransition {
+  map_id: number;
+  x: number;
+  y: number;
+  layer: string;
+}
+
 export interface MapInteractions {
   content: MapContent | null;
+  transition: MapTransition | null;
 }
 
 export interface ArtifactsMap {
