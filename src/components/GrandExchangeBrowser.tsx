@@ -3,12 +3,15 @@
 import {
   FormEvent,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
 } from "react";
-import { GeOrder, GeSale } from "@/types/grand-exchange";
+import { GeMarketItem, GeOrder, GeOrderType, GeSale } from "@/types/grand-exchange";
 import {
+  aggregateOrders,
+  getAllOrders,
   getMyOrders,
   getSaleHistory,
   invalidateGeCache,
@@ -29,6 +32,14 @@ interface SearchResult {
   sales: GeSale[];
 }
 
+/** Pré-remplissage du SellForm depuis un clic sur une demande d'achat.
+ *  `nonce` force la resynchro même si l'on reclique le même item. */
+interface SellPrefill {
+  code: string;
+  price: number;
+  nonce: number;
+}
+
 /** receivedAt du dernier événement WSS grandexchange_*, 0 si aucun. */
 function useLastGeEventSignal(): number {
   const events = useRealtimeEvents();
@@ -40,6 +51,7 @@ export function GrandExchangeBrowser() {
   const [result, setResult] = useState<SearchResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sellPrefill, setSellPrefill] = useState<SellPrefill | null>(null);
   const currentCode = useRef<string | null>(null);
   const geSignal = useLastGeEventSignal();
 
@@ -70,6 +82,18 @@ export function GrandExchangeBrowser() {
     if (code) void runSearch(code, false);
   }
 
+  // Clic sur une vente du marché : on bascule la recherche sur cet item.
+  function handleSelectSell(code: string) {
+    setInput(code);
+    void runSearch(code, false);
+  }
+
+  // Clic sur une demande d'achat : on pré-remplit le formulaire de vente avec
+  // le code et le prix de la meilleure offre.
+  function handleSelectBuy(item: GeMarketItem) {
+    setSellPrefill({ code: item.code, price: item.bestPrice, nonce: Date.now() });
+  }
+
   // Un événement GE (Aerith a agi) : on invalide le cache et on rejoue en
   // silence la recherche courante. Tout le setState vit dans le .then de
   // runSearch — jamais synchrone dans le corps de l'effet.
@@ -84,6 +108,12 @@ export function GrandExchangeBrowser() {
 
   return (
     <div className="space-y-6">
+      <MarketPanel
+        geSignal={geSignal}
+        onSelectSell={handleSelectSell}
+        onSelectBuy={handleSelectBuy}
+      />
+
       <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
         <input
           value={input}
@@ -110,10 +140,205 @@ export function GrandExchangeBrowser() {
         />
       )}
 
-      <SellForm />
+      <SellForm prefill={sellPrefill} />
       <MyOrdersPanel geSignal={geSignal} />
       <GeEventsFeed />
     </div>
+  );
+}
+
+// ── Marché : liste globale agrégée des ventes et demandes d'achat ────────────
+
+type MarketSortKey = "code" | "bestPrice" | "totalQuantity" | "orderCount";
+interface MarketSort {
+  key: MarketSortKey;
+  dir: "asc" | "desc";
+}
+
+/** Tri par défaut : ventes = moins cher d'abord, demandes = meilleure offre d'abord. */
+function defaultSort(tab: GeOrderType): MarketSort {
+  return { key: "bestPrice", dir: tab === "sell" ? "asc" : "desc" };
+}
+
+function MarketPanel({
+  geSignal,
+  onSelectSell,
+  onSelectBuy,
+}: {
+  geSignal: number;
+  onSelectSell: (code: string) => void;
+  onSelectBuy: (item: GeMarketItem) => void;
+}) {
+  const [orders, setOrders] = useState<GeOrder[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<GeOrderType>("sell");
+  const [filter, setFilter] = useState("");
+  const [sort, setSort] = useState<MarketSort>(defaultSort("sell"));
+
+  // Chargé au montage puis rejoué à chaque événement GES (achat/vente/annul).
+  useEffect(() => {
+    invalidateGeCache();
+    getAllOrders()
+      .then((loaded) => {
+        setOrders(loaded);
+        setError(null);
+      })
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Chargement du marché impossible."),
+      );
+  }, [geSignal]);
+
+  function switchTab(next: GeOrderType) {
+    setTab(next);
+    setSort(defaultSort(next));
+  }
+
+  function toggleSort(key: MarketSortKey) {
+    setSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: key === "code" ? "asc" : "desc" },
+    );
+  }
+
+  const items = useMemo(() => {
+    if (!orders) return [];
+    const query = filter.trim().toLowerCase();
+    const aggregated = aggregateOrders(orders, tab).filter((item) =>
+      item.code.includes(query),
+    );
+    const factor = sort.dir === "asc" ? 1 : -1;
+    return aggregated.sort((a, b) => {
+      if (sort.key === "code") return a.code.localeCompare(b.code) * factor;
+      return (a[sort.key] - b[sort.key]) * factor;
+    });
+  }, [orders, tab, filter, sort]);
+
+  const priceLabel = tab === "sell" ? "Prix mini" : "Meilleure offre";
+  const onSelect = (item: GeMarketItem) =>
+    tab === "sell" ? onSelectSell(item.code) : onSelectBuy(item);
+
+  return (
+    <section className="rounded-xl border border-gray-800 bg-gray-900/60 p-4 sm:p-6 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1 rounded-lg border border-gray-800 p-1">
+          <TabButton active={tab === "sell"} onClick={() => switchTab("sell")}>
+            Ventes
+          </TabButton>
+          <TabButton active={tab === "buy"} onClick={() => switchTab("buy")}>
+            Demandes d&apos;achat
+          </TabButton>
+        </div>
+        <input
+          value={filter}
+          onChange={(event) => setFilter(event.target.value)}
+          placeholder="Filtrer par item…"
+          autoComplete="off"
+          className="w-48 rounded-lg border border-gray-700 bg-gray-950 px-3 py-1.5 text-sm placeholder:text-gray-600 focus:border-gray-500 focus:outline-none"
+        />
+      </div>
+
+      {error && <p className="text-sm text-red-400">{error}</p>}
+      {!error && orders === null && (
+        <p className="text-sm text-gray-500">Chargement du marché…</p>
+      )}
+      {orders !== null && items.length === 0 && (
+        <p className="text-sm text-gray-500">
+          {filter.trim() ? "Aucun item ne correspond." : "Aucun ordre actif."}
+        </p>
+      )}
+
+      {items.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-gray-500">
+                <SortableHeader sort={sort} col="code" onClick={toggleSort}>
+                  Item
+                </SortableHeader>
+                <SortableHeader sort={sort} col="bestPrice" onClick={toggleSort}>
+                  {priceLabel}
+                </SortableHeader>
+                <SortableHeader sort={sort} col="totalQuantity" onClick={toggleSort}>
+                  Qté totale
+                </SortableHeader>
+                <SortableHeader sort={sort} col="orderCount" onClick={toggleSort}>
+                  Ordres
+                </SortableHeader>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr
+                  key={item.code}
+                  onClick={() => onSelect(item)}
+                  className="cursor-pointer border-t border-gray-800 hover:bg-gray-800/40"
+                >
+                  <td className="py-1.5 pr-4 font-mono">{item.code}</td>
+                  <td className="py-1.5 pr-4 font-mono text-amber-300">
+                    {item.bestPrice}
+                  </td>
+                  <td className="py-1.5 pr-4 font-mono">{item.totalQuantity}</td>
+                  <td className="py-1.5 font-mono text-gray-400">
+                    {item.orderCount}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+        active
+          ? "bg-gray-100 text-gray-950"
+          : "text-gray-400 hover:text-gray-200"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SortableHeader({
+  sort,
+  col,
+  onClick,
+  children,
+}: {
+  sort: MarketSort;
+  col: MarketSortKey;
+  onClick: (key: MarketSortKey) => void;
+  children: string;
+}) {
+  const arrow = sort.key === col ? (sort.dir === "asc" ? " ↑" : " ↓") : "";
+  return (
+    <th className="py-1.5 pr-4 font-medium">
+      <button
+        type="button"
+        onClick={() => onClick(col)}
+        className="font-medium text-gray-500 transition-colors hover:text-gray-300"
+      >
+        {children}
+        {arrow}
+      </button>
+    </th>
   );
 }
 
@@ -301,12 +526,23 @@ function BuyForm({
   );
 }
 
-function SellForm() {
+function SellForm({ prefill }: { prefill: SellPrefill | null }) {
   const [code, setCode] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unitPrice, setUnitPrice] = useState("");
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<GeActionResult | null>(null);
+  const [lastNonce, setLastNonce] = useState<number | null>(null);
+
+  // Clic sur une demande d'achat : on remplit code + prix, la quantité reste à
+  // saisir. Ajustement d'état au render (garde par nonce) plutôt qu'un effet —
+  // resynchro même si l'on reclique le même item.
+  if (prefill && prefill.nonce !== lastNonce) {
+    setLastNonce(prefill.nonce);
+    setCode(prefill.code);
+    setUnitPrice(String(prefill.price));
+    setResult(null);
+  }
 
   async function handleSell(event: FormEvent) {
     event.preventDefault();

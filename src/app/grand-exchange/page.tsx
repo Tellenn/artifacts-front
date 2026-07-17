@@ -8,8 +8,8 @@ export default function GrandExchangePage() {
       <div>
         <h1 className="text-xl font-bold">Grand Exchange</h1>
         <p className="mt-1 text-sm text-gray-400">
-          Consulte les ordres de vente et l&apos;historique de prix de
-          l&apos;API publique.
+          Parcours les ventes et les demandes d&apos;achat, et consulte
+          l&apos;historique de prix de l&apos;API publique.
         </p>
       </div>
       <GrandExchangeBrowser />

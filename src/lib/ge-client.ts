@@ -1,6 +1,6 @@
 "use client";
 
-import { GeOrder, GeSale } from "@/types/grand-exchange";
+import { GeMarketItem, GeOrder, GeOrderType, GeSale } from "@/types/grand-exchange";
 import { readApiKeyCookieClient } from "@/lib/api-key";
 
 const ARTIFACTS_PUBLIC_API = "https://api.artifactsmmo.com";
@@ -109,6 +109,45 @@ export async function getSaleHistory(code: string): Promise<GeSale[]> {
   sales.sort((a, b) => b.sold_at.localeCompare(a.sold_at));
   store(key, sales);
   return sales;
+}
+
+/** Tous les ordres publics (ventes + demandes d'achat), tous items confondus. */
+export async function getAllOrders(): Promise<GeOrder[]> {
+  const key = "all-orders";
+  const hit = cached<GeOrder[]>(key);
+  if (hit) return hit;
+
+  const orders = await fetchAllPages<GeOrder>("/grandexchange/orders");
+  store(key, orders);
+  return orders;
+}
+
+/**
+ * Agrège les ordres d'un type donné en une ligne par item.
+ * Fonction pure : `bestPrice` vaut le min pour `sell` (l'acheteur veut le moins
+ * cher) et le max pour `buy` (le vendeur veut la meilleure offre).
+ */
+export function aggregateOrders(
+  orders: GeOrder[],
+  type: GeOrderType,
+): GeMarketItem[] {
+  const byCode = new Map<string, GeOrder[]>();
+  for (const order of orders) {
+    if (order.type !== type) continue;
+    const group = byCode.get(order.code);
+    if (group) group.push(order);
+    else byCode.set(order.code, [order]);
+  }
+
+  return Array.from(byCode, ([code, group]) => {
+    const prices = group.map((order) => order.price);
+    return {
+      code,
+      bestPrice: type === "sell" ? Math.min(...prices) : Math.max(...prices),
+      totalQuantity: group.reduce((sum, order) => sum + order.quantity, 0),
+      orderCount: group.length,
+    };
+  });
 }
 
 /** Nos propres ordres actifs (clé API requise), du plus récent au plus ancien. */
