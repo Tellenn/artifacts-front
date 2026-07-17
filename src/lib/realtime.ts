@@ -251,6 +251,15 @@ export function useLiveCharacters(): Record<string, ArtifactsCharacter> {
   );
 }
 
+/** Feed brut des derniers événements WSS reçus (plafonné), plus récent d'abord. */
+export function useRealtimeEvents(): RealtimeEvent[] {
+  return useSyncExternalStore(
+    subscribeRealtime,
+    () => state.events,
+    () => SERVER_STATE.events,
+  );
+}
+
 /** Dernier message d'erreur du serveur temps réel, null si tout va bien. */
 export function useRealtimeError(): string | null {
   return useSyncExternalStore(
