@@ -5,6 +5,7 @@ import { BankDetails, BankItem } from "@/types/bank";
 import { GatheringTaskStatus } from "@/types/gathering";
 import { ArtifactsMap } from "@/types/map";
 import { MonsterData, ResourceData } from "@/types/tile-content";
+import { MerchantOffer } from "@/types/merchant";
 
 // `API_URL` est lue à l'exécution (configurable au runtime Docker), car
 // l'appel ne se fait que côté serveur. `NEXT_PUBLIC_API_URL` reste un fallback
@@ -67,6 +68,21 @@ export async function fetchBankDetails(): Promise<BankDetails> {
 export async function fetchGatheringTasks(): Promise<GatheringTaskStatus[]> {
   const response = await fetch(`${API_BASE}/gathering-tasks`, {
     next: { revalidate: 10 },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Erreur API: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// Catalogue d'achat des marchands fixes (hors événement). Le backend interroge
+// l'API Artifacts (items NPC + événements) — quota partagé avec le bot, d'où la
+// revalidation à 60 s. Le solde de devise en banque est inclus par ligne.
+export async function fetchMerchantOffers(): Promise<MerchantOffer[]> {
+  const response = await fetch(`${API_BASE}/merchant/offers`, {
+    next: { revalidate: 60 },
   });
 
   if (!response.ok) {
