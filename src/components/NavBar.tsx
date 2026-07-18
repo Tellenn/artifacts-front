@@ -18,6 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/bank", label: "Banque", icon: "🏦", match: [] },
   { href: "/tasks", label: "Tâches", icon: "📋", match: [] },
   { href: "/grand-exchange", label: "Grand Exchange", icon: "📈", match: [] },
+  { href: "/merchant", label: "Marchand", icon: "🛒", match: [] },
   { href: "/settings", label: "Réglages", icon: "⚙️", match: [] },
 ];
 
@@ -91,7 +92,7 @@ export function NavBar() {
         aria-label="Navigation principale"
         className="fixed bottom-0 inset-x-0 z-40 md:hidden border-t border-gray-800 bg-gray-950/95 backdrop-blur"
       >
-        <div className="grid grid-cols-6">
+        <div className="grid grid-cols-7">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
